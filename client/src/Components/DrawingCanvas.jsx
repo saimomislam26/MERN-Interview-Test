@@ -54,7 +54,7 @@ const DrawingCanvas = () => {
       }
     });
   };
-  
+
 
   // Mouse down event to start drawing or show text input
   const handleMouseDown = (e) => {
@@ -160,7 +160,7 @@ const DrawingCanvas = () => {
     context.fillStyle = color;
     context.fillText(text, position.x, position.y);
   };
-  
+
 
   // Erase function
   const eraseShape = (pos) => {
@@ -253,7 +253,7 @@ const DrawingCanvas = () => {
       });
       return;
     }
-  
+
     const newText = {
       type: 'text',
       text: textInput.value,
@@ -261,7 +261,7 @@ const DrawingCanvas = () => {
       color: 'black', // Default color for text
       fontSize: 20,   // Default font size for text
     };
-  
+
     setDrawings([...drawings, newText]);
     setTextInput({
       visible: false,
@@ -269,7 +269,7 @@ const DrawingCanvas = () => {
       value: '',
     });
   };
-  
+
   return (
     <div style={{ position: 'relative' }}>
       <div className="toolbar" style={{ marginBottom: '10px' }}>
@@ -284,12 +284,12 @@ const DrawingCanvas = () => {
       </div>
       <canvas
         ref={canvasRef}
-        style={{ border: '1px solid #000', width: '100%', height: 'auto' }}
+        style={{ border: '1px solid #000', width: '100%', height: '100%' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       />
-      
+
       {/* Text input for annotations */}
       {textInput.visible && (
         <div

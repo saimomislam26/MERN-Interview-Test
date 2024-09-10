@@ -1,17 +1,24 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { Routes, Route } from 'react-router-dom';
 import './App.css'
+import 'bootstrap/dist/css/bootstrap.min.css'
+
 import DrawingCanvas from './Components/DrawingCanvas'
 import DrawingList from './Components/DrawingList'
+import Navbar from './Components/shared/Navbar'
+
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <>
-      <DrawingCanvas />
-      <DrawingList/>
+      <Navbar />
+      <Routes>
+        <Route path='/' element={<DrawingCanvas />}>
+        </Route>
+      </Routes>
+
+      {/* <DrawingCanvas />
+      <DrawingList /> */}
     </>
   )
 }
