@@ -2,59 +2,95 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const DrawingList = () => {
-    const [drawings, setDrawings] = useState([]);
+  const [drawings, setDrawings] = useState([]);
 
-    useEffect(() => {
-        const fetchDrawings = async () => {
-            try {
-                const response = await axios.get(`${import.meta.env.VITE_API_URL}/get-all-drawings`);
-                setDrawings(response.data);
-            } catch (error) {
-                console.error('Error fetching drawings:', error);
-            }
-        };
-        fetchDrawings();
-    }, []);
+  useEffect(() => {
+    const fetchDrawings = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/get-all-drawings`);
+        setDrawings(response.data);
+      } catch (error) {
+        console.error('Error fetching drawings:', error);
+      }
+    };
+    fetchDrawings();
+  }, []);
 
-    useEffect(() => {
-        drawings.forEach(drawing => {
-            const canvas = document.getElementById(`canvas-${drawing._id}`);
-            if (canvas) {
-                const context = canvas.getContext('2d');
+  useEffect(() => {
+    drawings.forEach(drawing => {
+      const canvas = document.getElementById(`canvas-${drawing._id}`);
+      if (canvas) {
+        const context = canvas.getContext('2d');
+        // Set canvas size to match data if necessary
+        canvas.width = window.innerWidth * 0.8;
+        canvas.height = window.innerHeight * 0.6;
 
-                // Render each shape on the canvas
-                drawing.shapes.forEach((shape) => {
-                    if (shape.type === 'line') {
-                        context.beginPath();
-                        context.moveTo(shape.start.x, shape.start.y);
-                        context.lineTo(shape.end.x, shape.end.y);
-                        context.stroke();
-                    } else if (shape.type === 'rectangle') {
-                        const width = shape.end.x - shape.start.x;
-                        const height = shape.end.y - shape.start.y;
-                        context.strokeRect(shape.start.x, shape.start.y, width, height);
-                    } else if (shape.type === 'circle') {
-                        const radius = Math.sqrt(Math.pow(shape.end.x - shape.start.x, 2) + Math.pow(shape.end.y - shape.start.y, 2));
-                        context.beginPath();
-                        context.arc(shape.start.x, shape.start.y, radius, 0, 2 * Math.PI);
-                        context.stroke();
-                    }
-                });
-            }
+        // Render each shape on the canvas
+        drawing.shapes.forEach((shape) => {
+          switch (shape.type) {
+            case 'line':
+              drawLine(context, shape.start, shape.end, shape.color, shape.thickness);
+              break;
+            case 'rectangle':
+              drawRectangle(context, shape.start, shape.end, shape.color, shape.thickness);
+              break;
+            case 'circle':
+              drawCircle(context, shape.start, shape.end, shape.color, shape.thickness);
+              break;
+            case 'text':
+              drawText(context, shape.text, shape.start, shape.color, shape.fontSize);
+              break;
+            default:
+              break;
+          }
         });
-    }, [drawings]);
+      }
+    });
+  }, [drawings]);
 
-    return (
-        <div>
-            <h1>Saved Drawings</h1>
-            {drawings.map((drawing) => (
-                <div key={drawing._id}>
-                    <canvas id={`canvas-${drawing._id}`} width={1000} height={600} style={{ border: '1px solid #000' }} />
-                  
-                </div>
-            ))}
+  // Drawing functions
+  const drawLine = (context, start, end, color, thickness) => {
+    context.beginPath();
+    context.moveTo(start.x, start.y);
+    context.lineTo(end.x, end.y);
+    context.strokeStyle = color || 'black';
+    context.lineWidth = thickness || 1;
+    context.stroke();
+  };
+
+  const drawRectangle = (context, start, end, color, thickness) => {
+    const width = end.x - start.x;
+    const height = end.y - start.y;
+    context.strokeStyle = color || 'black';
+    context.lineWidth = thickness || 1;
+    context.strokeRect(start.x, start.y, width, height);
+  };
+
+  const drawCircle = (context, start, end, color, thickness) => {
+    const radius = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+    context.beginPath();
+    context.arc(start.x, start.y, radius, 0, 2 * Math.PI);
+    context.strokeStyle = color || 'black';
+    context.lineWidth = thickness || 1;
+    context.stroke();
+  };
+
+  const drawText = (context, text, position, color, fontSize) => {
+    context.font = `${fontSize || 20}px Arial`;
+    context.fillStyle = color || 'black';
+    context.fillText(text, position.x, position.y);
+  };
+
+  return (
+    <div>
+      <h1>Saved Drawings</h1>
+      {drawings.map((drawing) => (
+        <div key={drawing._id}>
+          <canvas id={`canvas-${drawing._id}`} style={{ border: '1px solid #000' }} />
         </div>
-    );
+      ))}
+    </div>
+  );
 };
 
 export default DrawingList;
