@@ -112,7 +112,7 @@ const DrawingCanvas = () => {
   // Save the drawing to the backend
   const saveDrawing = async () => {
     try {
-      await axios.post('http://localhost:5000/api/drawing/create-drawing', { shapes: drawings });
+      await axios.post(`${import.meta.env.VITE_API_URL}/create-drawing`, { shapes: drawings });
       alert('Drawing saved!');
     } catch (error) {
       console.error('Error saving drawing:', error);
