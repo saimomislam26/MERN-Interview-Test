@@ -1,96 +1,107 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Menu,
+  MenuItem,
+  TablePagination,
+} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
-const DrawingList = () => {
-  const [drawings, setDrawings] = useState([]);
+const data = [
+  { id: 1, title: 'Task 1', createdAt: '2024-09-11' },
+  { id: 2, title: 'Task 2', createdAt: '2024-09-10' },
+  { id: 3, title: 'Task 3', createdAt: '2024-09-09' },
+  { id: 4, title: 'Task 4', createdAt: '2024-09-08' },
+  // Add more data here
+];
 
-  useEffect(() => {
-    const fetchDrawings = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/get-all-drawings`);
-        setDrawings(response.data);
-      } catch (error) {
-        console.error('Error fetching drawings:', error);
-      }
-    };
-    fetchDrawings();
-  }, []);
+const DrawList = () => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  useEffect(() => {
-    drawings.forEach(drawing => {
-      const canvas = document.getElementById(`canvas-${drawing._id}`);
-      if (canvas) {
-        const context = canvas.getContext('2d');
-        // Set canvas size to match data if necessary
-        canvas.width = window.innerWidth * 0.8;
-        canvas.height = window.innerHeight * 0.6;
-
-        // Render each shape on the canvas
-        drawing.shapes.forEach((shape) => {
-          switch (shape.type) {
-            case 'line':
-              drawLine(context, shape.start, shape.end, shape.color, shape.thickness);
-              break;
-            case 'rectangle':
-              drawRectangle(context, shape.start, shape.end, shape.color, shape.thickness);
-              break;
-            case 'circle':
-              drawCircle(context, shape.start, shape.end, shape.color, shape.thickness);
-              break;
-            case 'text':
-              drawText(context, shape.text, shape.start, shape.color, shape.fontSize);
-              break;
-            default:
-              break;
-          }
-        });
-      }
-    });
-  }, [drawings]);
-
-  // Drawing functions
-  const drawLine = (context, start, end, color, thickness) => {
-    context.beginPath();
-    context.moveTo(start.x, start.y);
-    context.lineTo(end.x, end.y);
-    context.strokeStyle = color || 'black';
-    context.lineWidth = thickness || 1;
-    context.stroke();
+  const handleMenuClick = (event, row) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedRow(row);
   };
 
-  const drawRectangle = (context, start, end, color, thickness) => {
-    const width = end.x - start.x;
-    const height = end.y - start.y;
-    context.strokeStyle = color || 'black';
-    context.lineWidth = thickness || 1;
-    context.strokeRect(start.x, start.y, width, height);
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedRow(null);
   };
 
-  const drawCircle = (context, start, end, color, thickness) => {
-    const radius = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
-    context.beginPath();
-    context.arc(start.x, start.y, radius, 0, 2 * Math.PI);
-    context.strokeStyle = color || 'black';
-    context.lineWidth = thickness || 1;
-    context.stroke();
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
 
-  const drawText = (context, text, position, color, fontSize) => {
-    context.font = `${fontSize || 20}px Arial`;
-    context.fillStyle = color || 'black';
-    context.fillText(text, position.x, position.y);
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   return (
-    <div>
-      <h1>Saved Drawings</h1>
-      {drawings.map((drawing) => (
-        <div key={drawing._id}>
-          <canvas id={`canvas-${drawing._id}`} style={{ border: '1px solid #000' }} />
-        </div>
-      ))}
+    <div style={{width:"100%", padding:"2rem"}}>
+
+      <Paper>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Title</TableCell>
+                <TableCell>Created Time</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {data
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>{row.title}</TableCell>
+                    <TableCell>{row.createdAt}</TableCell>
+                    <TableCell>
+                      <IconButton
+                        aria-controls="simple-menu"
+                        aria-haspopup="true"
+                        onClick={(event) => handleMenuClick(event, row)}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                      <Menu
+                        anchorEl={anchorEl}
+                        keepMounted
+                        open={Boolean(anchorEl)}
+                        onClose={handleMenuClose}
+                      >
+                        <MenuItem onClick={() => alert(`View ${selectedRow?.title}`)}>View</MenuItem>
+                        <MenuItem onClick={() => alert(`Delete ${selectedRow?.title}`)}>Delete</MenuItem>
+                      </Menu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={data.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </Paper>
     </div>
   );
 };
 
-export default DrawingList;
+export default DrawList;

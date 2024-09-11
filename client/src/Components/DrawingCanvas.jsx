@@ -1,29 +1,42 @@
 import React, { useRef, useState, useEffect } from 'react';
-import axios from 'axios';
+import Button from '@mui/material/Button';
+import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
+import CropDinIcon from '@mui/icons-material/CropDin';
+import TripOriginIcon from '@mui/icons-material/TripOrigin';
+import KeyboardIcon from '@mui/icons-material/Keyboard';
+import AutoFixNormalIcon from '@mui/icons-material/AutoFixNormal';
+import UndoIcon from '@mui/icons-material/Undo';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import SaveIcon from '@mui/icons-material/Save';
+import { Input } from '@mui/material';
+import { toast } from 'react-toastify';
+
+import axios from 'axios'
+import Loader from '../../utils/Loader';
 
 const DrawingCanvas = () => {
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [tool, setTool] = useState('line'); // Default tool
+  const [tool, setTool] = useState('line');
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [drawings, setDrawings] = useState([]);
+  const [drawingTitle, setDrawingTitle] = useState("Drawing")
   const [textInput, setTextInput] = useState({
     visible: false,
     position: { x: 0, y: 0 },
     value: '',
   });
+  const [loading, setLoading] = useState(false)
 
-  // Initialize the canvas and context
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
     setCtx(context);
 
-    // Make the canvas responsive
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth * 0.8;
-      canvas.height = window.innerHeight * 0.6;
+      canvas.width = window.innerWidth * 0.95;
+      canvas.height = window.innerHeight - 150; 
       redraw(context);
     };
     window.addEventListener('resize', resizeCanvas);
@@ -32,7 +45,48 @@ const DrawingCanvas = () => {
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [drawings]);
 
-  // Redraw the canvas based on saved drawings
+
+    // Redraw the canvas based on saved drawings and scale
+    const redrawWithScale = (context, widthScale, heightScale) => {
+      context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      drawings.forEach((drawing) => {
+        const scaledStart = {
+          x: drawing.start.x * widthScale,
+          y: drawing.start.y * heightScale,
+        };
+        const scaledEnd = drawing.end
+          ? { x: drawing.end.x * widthScale, y: drawing.end.y * heightScale }
+          : null;
+  
+        switch (drawing.type) {
+          case 'line':
+            drawLine(context, scaledStart, scaledEnd);
+            break;
+          case 'rectangle':
+            drawRectangle(context, scaledStart, scaledEnd);
+            break;
+          case 'circle':
+            drawCircle(context, scaledStart, scaledEnd);
+            break;
+          case 'text':
+            drawText(context, drawing.text, scaledStart, drawing.color, drawing.fontSize);
+            break;
+          default:
+            break;
+        }
+      });
+    };
+
+  // Adjust the mouse position to account for canvas size changes
+  const getMousePos = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * canvasRef.current.width,
+      y: ((e.clientY - rect.top) / rect.height) * canvasRef.current.height,
+    };
+  };
+
+  // Redraw the canvas
   const redraw = (context) => {
     context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     drawings.forEach((drawing) => {
@@ -47,7 +101,7 @@ const DrawingCanvas = () => {
           drawCircle(context, drawing.start, drawing.end);
           break;
         case 'text':
-          drawText(context, drawing.text, drawing.start, drawing.color, drawing.fontSize);
+          drawText(context, drawing.text, drawing.start);
           break;
         default:
           break;
@@ -55,14 +109,8 @@ const DrawingCanvas = () => {
     });
   };
 
-
-  // Mouse down event to start drawing or show text input
   const handleMouseDown = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    const pos = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+    const pos = getMousePos(e);
     setStartPos(pos);
 
     if (tool === 'eraser') {
@@ -78,16 +126,10 @@ const DrawingCanvas = () => {
     }
   };
 
-  // Mouse move event to draw continuously
   const handleMouseMove = (e) => {
     if (!isDrawing) return;
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const currentPos = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-
+    const currentPos = getMousePos(e);
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     redraw(ctx);
 
@@ -106,16 +148,10 @@ const DrawingCanvas = () => {
     }
   };
 
-  // Mouse up event to finish drawing
   const handleMouseUp = (e) => {
     if (!isDrawing) return;
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const endPos = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-
+    const endPos = getMousePos(e);
     const newDrawing = {
       type: tool,
       start: startPos,
@@ -128,41 +164,38 @@ const DrawingCanvas = () => {
     setIsDrawing(false);
   };
 
-  // Drawing functions
-  const drawLine = (context, start, end, color = 'black', thickness = 1) => {
+  const drawLine = (context, start, end) => {
     context.beginPath();
     context.moveTo(start.x, start.y);
     context.lineTo(end.x, end.y);
-    context.strokeStyle = color;
-    context.lineWidth = thickness;
+    context.strokeStyle = 'black';
+    context.lineWidth = 1;
     context.stroke();
   };
 
-  const drawRectangle = (context, start, end, color = 'black', thickness = 1) => {
+  const drawRectangle = (context, start, end) => {
     const width = end.x - start.x;
     const height = end.y - start.y;
-    context.strokeStyle = color;
-    context.lineWidth = thickness;
+    context.strokeStyle = 'black';
+    context.lineWidth = 1;
     context.strokeRect(start.x, start.y, width, height);
   };
 
-  const drawCircle = (context, start, end, color = 'black', thickness = 1) => {
+  const drawCircle = (context, start, end) => {
     const radius = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
     context.beginPath();
     context.arc(start.x, start.y, radius, 0, 2 * Math.PI);
-    context.strokeStyle = color;
-    context.lineWidth = thickness;
+    context.strokeStyle = 'black';
+    context.lineWidth = 1;
     context.stroke();
   };
 
-  const drawText = (context, text, position, color = 'black', fontSize = 20) => {
-    context.font = `${fontSize}px Arial`;
-    context.fillStyle = color;
+  const drawText = (context, text, position) => {
+    context.font = '20px Arial';
+    context.fillStyle = 'black';
     context.fillText(text, position.x, position.y);
   };
 
-
-  // Erase function
   const eraseShape = (pos) => {
     const shapeIndex = drawings.findIndex((shape) => {
       if (shape.type === 'line') {
@@ -181,12 +214,13 @@ const DrawingCanvas = () => {
       const updatedDrawings = [...drawings];
       updatedDrawings.splice(shapeIndex, 1); // Remove the shape
       setDrawings(updatedDrawings); // Update the state
-      redraw(ctx); // Redraw the canvas without the erased shape
+      redrawWithScale(ctx, 1, 1); // Redraw the canvas without the erased shape
     }
   };
 
-  // Helper functions to check if a point is on a shape
-  const isPointOnLine = (point, start, end) => {
+
+   // Helper functions to check if a point is on a shape
+   const isPointOnLine = (point, start, end) => {
     const distance =
       Math.abs((end.y - start.y) * point.x - (end.x - start.x) * point.y + end.x * start.y - end.y * start.x) /
       Math.sqrt(Math.pow(end.y - start.y, 2) + Math.pow(end.x - start.x, 2));
@@ -219,31 +253,6 @@ const DrawingCanvas = () => {
     );
   };
 
-  // Save the drawing to the backend
-  const saveDrawing = async () => {
-    try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/create-drawing`, { shapes: drawings });
-      alert('Drawing saved!');
-    } catch (error) {
-      console.error('Error saving drawing:', error);
-    }
-  };
-
-  // Clear the last shape or annotation
-  const clearLastShape = () => {
-    const updatedDrawings = [...drawings];
-    updatedDrawings.pop(); // Remove the last shape or annotation
-    setDrawings(updatedDrawings); // Update the state
-    redraw(ctx); // Redraw the canvas without the last shape
-  };
-
-  // Reset the canvas by clearing all shapes
-  const resetCanvas = () => {
-    setDrawings([]); // Clear all shapes and annotations
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear the canvas
-  };
-
-  // Handle text input submission
   const handleTextSave = () => {
     if (textInput.value.trim() === '') {
       setTextInput({
@@ -258,8 +267,6 @@ const DrawingCanvas = () => {
       type: 'text',
       text: textInput.value,
       start: textInput.position,
-      color: 'black', // Default color for text
-      fontSize: 20,   // Default font size for text
     };
 
     setDrawings([...drawings, newText]);
@@ -270,25 +277,138 @@ const DrawingCanvas = () => {
     });
   };
 
+  const clearLastShape = () => {
+    setDrawings(drawings.slice(0, -1));
+    redraw(ctx);
+  };
+
+  const resetCanvas = () => {
+    setDrawings([]);
+    redraw(ctx);
+  };
+
+  const saveDrawing = async () => {
+    setLoading(true)
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/create-drawing`, { title: drawingTitle, drawings });
+      toast.success("Drawing Saved Succesfully", {  autoClose: 2000, pauseOnHover: false })
+    } catch (error) {
+      toast.warning("'Error saving drawing", {  autoClose: 2000, pauseOnHover: false })
+      console.error('Error saving drawing:', error);
+    }finally{
+      setLoading(false)
+    }
+  };
+
+  const handleDrawingTitle = (e) => {
+    setDrawingTitle(e.target.value)
+  }
+
+  if(loading){
+    return (
+      <Loader/>
+    )
+  }
+
   return (
-    <div style={{ position: 'relative' }}>
-      <div className="toolbar" style={{ marginBottom: '10px' }}>
-        <button onClick={() => setTool('line')}>Line</button>
-        <button onClick={() => setTool('rectangle')}>Rectangle</button>
-        <button onClick={() => setTool('circle')}>Circle</button>
-        <button onClick={() => setTool('text')}>Text</button>
-        <button onClick={() => setTool('eraser')}>Eraser</button>
-        <button onClick={clearLastShape}>Clear Last</button>
-        <button onClick={resetCanvas}>Reset All</button>
-        <button onClick={saveDrawing}>Save Drawing</button>
+    <div style={{ marginTop: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10 }}>
+        {/* Tool Buttons */}
+        <Input
+          placeholder="Drawing Title"
+          sx={{ '--Input-focused': 1, width: 180 }}
+          value={drawingTitle}
+          onChange={handleDrawingTitle}
+        />
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          onClick={() => setTool('line')}
+          startIcon={<ArrowRightAltIcon />}
+          sx={{ marginLeft: "5px" }}
+        >
+          Line
+        </Button>
+
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          onClick={() => setTool('rectangle')}
+          startIcon={<CropDinIcon />}
+        >
+          Rectangle
+        </Button>
+
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          onClick={() => setTool('circle')}
+          startIcon={<TripOriginIcon />}
+        >
+          Circle
+        </Button>
+
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          onClick={() => setTool('text')}
+          startIcon={<KeyboardIcon />}
+        >
+          Text
+        </Button>
+
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          onClick={() => setTool('eraser')}
+          startIcon={<AutoFixNormalIcon />}
+        >
+          Eraser
+        </Button>
+
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          onClick={clearLastShape}
+          startIcon={<UndoIcon />}
+        >
+          Undo
+        </Button>
+
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          onClick={resetCanvas}
+          startIcon={<RestartAltIcon />}
+        >
+          Reset
+        </Button>
+
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          onClick={saveDrawing}
+          startIcon={<SaveIcon />}
+        >
+          Save Drawing
+        </Button>
       </div>
-      <canvas
-        ref={canvasRef}
-        style={{ border: '1px solid #000', width: '100%', height: '100%' }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      />
 
       {/* Text input for annotations */}
       {textInput.visible && (
@@ -326,6 +446,23 @@ const DrawingCanvas = () => {
           </button>
         </div>
       )}
+
+      {/* Canvas */}
+      <canvas
+        ref={canvasRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        style={{
+          border: '1px solid black',
+          display: 'block',
+          margin: '20px auto',
+          backgroundColor: 'white',
+          borderRadius: '20px',
+          width: '95%',
+          height: 'calc(100vh - 150px)',
+        }}
+      />
     </div>
   );
 };

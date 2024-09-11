@@ -1,8 +1,9 @@
 const Drawing = require('../models/drawingModel')
 
 module.exports.createDrawing = async (req, res) => {
+    const { title, drawings } = req.body
     try {
-        const drawing = new Drawing(req.body);
+        const drawing = new Drawing({ title, shapes: drawings });
         await drawing.save();
         res.status(201).send(drawing);
     } catch (error) {
@@ -12,12 +13,44 @@ module.exports.createDrawing = async (req, res) => {
 
 module.exports.getAllDrawings = async (req, res) => {
     try {
-        const drawings = await Drawing.find();
-        res.status(200).send(drawings);
+        // Get page and limit from query, with default values
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
+        // Validate page and limit
+        if (page <= 0 || limit <= 0) {
+            return res.status(400).json({
+                error: 'Page and limit must be positive integers.'
+            });
+        }
+
+        // Calculate skip value
+        const skip = (page - 1) * limit;
+
+        // Get total count of documents
+        const total = await Drawing.countDocuments();
+
+        // Fetch drawings with pagination
+        const drawings = await Drawing.find()
+            .skip(skip)
+            .limit(limit);
+
+        // Return paginated response
+        res.status(200).json({
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            drawings
+        });
     } catch (error) {
-        res.status(500).send(error);
+        console.error(error);
+        res.status(500).json({
+            error: 'An error occurred while fetching drawings.',
+            message: error.message
+        });
     }
-}
+};
 
 module.exports.getIndividualDrawing = async (req, res) => {
     try {

@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
-import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import DrawingCanvas from './Components/DrawingCanvas'
 import DrawingList from './Components/DrawingList'
@@ -13,12 +15,10 @@ function App() {
     <>
       <Navbar />
       <Routes>
-        <Route path='/' element={<DrawingCanvas />}>
-        </Route>
+        <Route path='/' element={<DrawingCanvas />} />
+        <Route path='/show-drawings' element={<DrawingList />} />
       </Routes>
-
-      {/* <DrawingCanvas />
-      <DrawingList /> */}
+      <ToastContainer />
     </>
   )
 }
