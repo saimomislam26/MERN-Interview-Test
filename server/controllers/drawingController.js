@@ -3,7 +3,7 @@ const Drawing = require('../models/drawingModel')
 
 module.exports.createDrawing = async (req, res) => {
     const { title, drawings } = req.body;
-    console.log({title, drawings});
+    // console.log({title, drawings});
     
     // Check if both title and drawings are provided
     if (!title || drawings.length < 1) {
