@@ -27,7 +27,6 @@ app.use(function (req, res, next) {
 // Serve static files from the React app build folder
 app.use(express.static(path.join(__dirname, "../client/dist")));
 
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
