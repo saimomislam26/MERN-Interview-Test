@@ -26,14 +26,6 @@ Live Linnk - [https://mern-interview-test-six.vercel.app/](https://mern-intervie
   - API for saving, updating, deleting, and retrieving drawings.
 - **Database**: MongoDB Atlas
 
-## API Endpoints
-
-- **GET /drawing**: Fetch all saved drawings.
-- **GET /drawing/:id**: Fetch a specific drawing by ID.
-- **POST /drawing**: Save a new drawing.
-- **PUT /drawing/:id**: Update an existing drawing.
-- **DELETE /drawing/:id**: Delete a specific drawing.
-
 ## Requirements
 
 - **Node.js**: >= v16.0.0
