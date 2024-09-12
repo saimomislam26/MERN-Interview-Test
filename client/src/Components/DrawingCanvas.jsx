@@ -29,6 +29,7 @@ const DrawingCanvas = () => {
   });
   const [loading, setLoading] = useState(false)
 
+  // Initialize the canvas and handle resizing
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
@@ -36,7 +37,7 @@ const DrawingCanvas = () => {
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth * 0.95;
-      canvas.height = window.innerHeight - 150; 
+      canvas.height = window.innerHeight - 150;
       redraw(context);
     };
     window.addEventListener('resize', resizeCanvas);
@@ -46,38 +47,39 @@ const DrawingCanvas = () => {
   }, [drawings]);
 
 
-    // Redraw the canvas based on saved drawings and scale
-    const redrawWithScale = (context, widthScale, heightScale) => {
-      context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      drawings.forEach((drawing) => {
-        const scaledStart = {
-          x: drawing.start.x * widthScale,
-          y: drawing.start.y * heightScale,
-        };
-        const scaledEnd = drawing.end
-          ? { x: drawing.end.x * widthScale, y: drawing.end.y * heightScale }
-          : null;
-  
-        switch (drawing.type) {
-          case 'line':
-            drawLine(context, scaledStart, scaledEnd);
-            break;
-          case 'rectangle':
-            drawRectangle(context, scaledStart, scaledEnd);
-            break;
-          case 'circle':
-            drawCircle(context, scaledStart, scaledEnd);
-            break;
-          case 'text':
-            drawText(context, drawing.text, scaledStart, drawing.color, drawing.fontSize);
-            break;
-          default:
-            break;
-        }
-      });
-    };
+  // Redraw the canvas with scaling based on current window size
+  const redrawWithScale = (context, widthScale, heightScale) => {
+    context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    drawings.forEach((drawing) => {
+      const scaledStart = {
+        x: drawing.start.x * widthScale,
+        y: drawing.start.y * heightScale,
+      };
+      const scaledEnd = drawing.end
+        ? { x: drawing.end.x * widthScale, y: drawing.end.y * heightScale }
+        : null;
 
-  // Adjust the mouse position to account for canvas size changes
+      // Draw shapes based on their type
+      switch (drawing.type) {
+        case 'line':
+          drawLine(context, scaledStart, scaledEnd);
+          break;
+        case 'rectangle':
+          drawRectangle(context, scaledStart, scaledEnd);
+          break;
+        case 'circle':
+          drawCircle(context, scaledStart, scaledEnd);
+          break;
+        case 'text':
+          drawText(context, drawing.text, scaledStart, drawing.color, drawing.fontSize);
+          break;
+        default:
+          break;
+      }
+    });
+  };
+
+  // Get mouse position relative to the canvas size
   const getMousePos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
     return {
@@ -164,6 +166,7 @@ const DrawingCanvas = () => {
     setIsDrawing(false);
   };
 
+  // Draw a line on the canvas
   const drawLine = (context, start, end) => {
     context.beginPath();
     context.moveTo(start.x, start.y);
@@ -173,6 +176,7 @@ const DrawingCanvas = () => {
     context.stroke();
   };
 
+  // Draw a rectangle on the canvas
   const drawRectangle = (context, start, end) => {
     const width = end.x - start.x;
     const height = end.y - start.y;
@@ -181,6 +185,7 @@ const DrawingCanvas = () => {
     context.strokeRect(start.x, start.y, width, height);
   };
 
+  // Draw a circle on the canvas
   const drawCircle = (context, start, end) => {
     const radius = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
     context.beginPath();
@@ -190,12 +195,14 @@ const DrawingCanvas = () => {
     context.stroke();
   };
 
+  // draw text on canvas
   const drawText = (context, text, position) => {
     context.font = '20px Arial';
     context.fillStyle = 'black';
     context.fillText(text, position.x, position.y);
   };
 
+  // erase the drawing finding the shape based on clicking point
   const eraseShape = (pos) => {
     const shapeIndex = drawings.findIndex((shape) => {
       if (shape.type === 'line') {
@@ -219,8 +226,9 @@ const DrawingCanvas = () => {
   };
 
 
-   // Helper functions to check if a point is on a shape
-   const isPointOnLine = (point, start, end) => {
+  // Helper functions 
+  //  to check if a point is on a shape
+  const isPointOnLine = (point, start, end) => {
     const distance =
       Math.abs((end.y - start.y) * point.x - (end.x - start.x) * point.y + end.x * start.y - end.y * start.x) /
       Math.sqrt(Math.pow(end.y - start.y, 2) + Math.pow(end.x - start.x, 2));
@@ -244,7 +252,7 @@ const DrawingCanvas = () => {
   const isPointOnText = (point, position, text) => {
     const metrics = ctx.measureText(text);
     const textWidth = metrics.width;
-    const textHeight = 20; // Approximate height based on font size
+    const textHeight = 20;
     return (
       point.x >= position.x &&
       point.x <= position.x + textWidth &&
@@ -288,26 +296,56 @@ const DrawingCanvas = () => {
   };
 
   const saveDrawing = async () => {
-    setLoading(true)
+    setLoading(true);
+
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/create-drawing`, { title: drawingTitle, drawings });
-      toast.success("Drawing Saved Succesfully", {  autoClose: 2000, pauseOnHover: false })
+      // Send the drawing data to the API
+      await axios.post(`${import.meta.env.VITE_API_URL}/create-drawing`, {
+        title: drawingTitle,
+        drawings
+      });
+
+      // Success notification
+      toast.success("Drawing Saved Successfully", { autoClose: 2000, pauseOnHover: false });
+
+      // Clear the drawings after successful save
       setDrawings([]);
     } catch (error) {
-      toast.warning("'Error saving drawing", {  autoClose: 2000, pauseOnHover: false })
+      // Enhanced error handling
+      if (error.response) {
+        // Server responded with a status other than 2xx
+        const { status, data } = error.response;
+
+        if (status === 400) {
+          toast.warning(` ${data.message || 'Invalid data'}`, { autoClose: 2000, pauseOnHover: false });
+        } else if (status === 500) {
+          toast.error("Server Error: Please try again later", { autoClose: 2000, pauseOnHover: false });
+        } else {
+          toast.error(`Unexpected Error: ${data.message || 'Something went wrong'}`, { autoClose: 2000, pauseOnHover: false });
+        }
+      } else if (error.request) {
+        // Request was made but no response was received
+        toast.error("No response from server. Please check your connection.", { autoClose: 2000, pauseOnHover: false });
+      } else {
+        // Something happened while setting up the request
+        toast.error(`Error: ${error.message}`, { autoClose: 2000, pauseOnHover: false });
+      }
+
       console.error('Error saving drawing:', error);
-    }finally{
-      setLoading(false)
+    } finally {
+      // Stop the loading indicator
+      setLoading(false);
     }
   };
+
 
   const handleDrawingTitle = (e) => {
     setDrawingTitle(e.target.value)
   }
 
-  if(loading){
+  if (loading) {
     return (
-      <Loader/>
+      <Loader />
     )
   }
 
@@ -416,8 +454,8 @@ const DrawingCanvas = () => {
         <div
           style={{
             position: 'absolute',
-            left: `${textInput.position.x}px`,
-            top: `${textInput.position.y}px`,
+            left: `${textInput.position.x + 20}px`,
+            top: `${textInput.position.y + 100}px`,
             display: 'flex',
             alignItems: 'center',
             zIndex: 1,

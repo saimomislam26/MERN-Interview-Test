@@ -2,15 +2,42 @@ const mongoose = require('mongoose')
 const Drawing = require('../models/drawingModel')
 
 module.exports.createDrawing = async (req, res) => {
-    const { title, drawings } = req.body
-    try {
-        const drawing = new Drawing({ title, shapes: drawings });
-        await drawing.save();
-        res.status(201).send(drawing);
-    } catch (error) {
-        res.status(400).send(error);
+    const { title, drawings } = req.body;
+    console.log({title, drawings});
+    
+    // Check if both title and drawings are provided
+    if (!title || drawings.length < 1) {
+        return res.status(400).json({
+            message: 'Title and drawings are required.'
+        });
     }
-}
+
+    try {
+        // Create new drawing instance
+        const drawing = new Drawing({ title, shapes: drawings });
+
+        // Save the drawing to the database
+        await drawing.save();
+
+        // Send success response
+        res.status(201).json(drawing);
+    } catch (error) {
+        // Handle validation errors or database errors
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                message: 'Invalid data format.',
+                details: error.errors
+            });
+        }
+
+        // General error handling
+        res.status(500).json({
+            message: 'An error occurred while saving the drawing.',
+            details: error.message
+        });
+    }
+};
+
 
 module.exports.getAllDrawings = async (req, res) => {
     try {
