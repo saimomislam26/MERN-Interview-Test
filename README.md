@@ -87,7 +87,7 @@ Live Linnk - [https://mern-interview-test-six.vercel.app/](https://mern-intervie
 
 ## Running the React App from the Same Port as the Backend
 
-   You can serve the React app from the Express.js backend by removing comment from the following configuration to  `app.js` from server folder:
+   You can serve the React app from the Express.js backend from the following configuration to  `app.js` from server folder:
    
    ```javascript
    const path = require('path');
