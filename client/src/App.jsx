@@ -7,6 +7,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import DrawingCanvas from './Components/DrawingCanvas'
 import DrawingList from './Components/DrawingList'
 import Navbar from './Components/shared/Navbar'
+import SingleDrawing from './Components/SingleDrawing';
 
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
       <Routes>
         <Route path='/' element={<DrawingCanvas />} />
         <Route path='/show-drawings' element={<DrawingList />} />
+        <Route path='/single-drawing/:id' element={<SingleDrawing/>}/>
       </Routes>
       <ToastContainer />
     </>

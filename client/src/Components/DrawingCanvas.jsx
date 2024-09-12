@@ -292,6 +292,7 @@ const DrawingCanvas = () => {
     try {
       await axios.post(`${import.meta.env.VITE_API_URL}/create-drawing`, { title: drawingTitle, drawings });
       toast.success("Drawing Saved Succesfully", {  autoClose: 2000, pauseOnHover: false })
+      setDrawings([]);
     } catch (error) {
       toast.warning("'Error saving drawing", {  autoClose: 2000, pauseOnHover: false })
       console.error('Error saving drawing:', error);

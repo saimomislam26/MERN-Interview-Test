@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const Drawing = require('../models/drawingModel')
 
 module.exports.createDrawing = async (req, res) => {
@@ -20,7 +21,7 @@ module.exports.getAllDrawings = async (req, res) => {
         // Validate page and limit
         if (page <= 0 || limit <= 0) {
             return res.status(400).json({
-                error: 'Page and limit must be positive integers.'
+                message: 'Page and limit must be positive integers.'
             });
         }
 
@@ -54,30 +55,72 @@ module.exports.getAllDrawings = async (req, res) => {
 
 module.exports.getIndividualDrawing = async (req, res) => {
     try {
+
+        // Find drawing by ID
         const drawing = await Drawing.findById(req.params.id);
-        if (!drawing) return res.status(404).send();
-        res.status(200).send(drawing);
+
+        // Handle if drawing is not found
+        if (!drawing) {
+            return res.status(404).json({ message: "Drawing not found" });
+        }
+
+        // Successfully return drawing data
+        res.status(200).json(drawing);
+
     } catch (error) {
-        res.status(500).send(error);
+        // Error handling for invalid ObjectID or other server issues
+        if (error.kind === 'ObjectId') {
+            return res.status(400).json({ message: "Invalid drawing ID format" });
+        }
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 }
 
 module.exports.updateIndividualDrawing = async (req, res) => {
+    // Validate the drawing ID
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid drawing ID' });
+    }
+
     try {
-        const drawing = await Drawing.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!drawing) return res.status(404).send();
-        res.status(200).send(drawing);
+        const drawing = await Drawing.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true,
+        });
+
+        if (!drawing) {
+            return res.status(404).json({ message: 'Drawing not found' });
+        }
+
+        return res.status(200).json({ drawing, message: "Drawing Updated Successfully" });
     } catch (error) {
-        res.status(400).send(error);
+
+        // Handle other errors (e.g., database connection issues)
+        return res.status(500).json({ error: 'Internal Server Error', message: error.message });
     }
 }
 
 module.exports.deleteIndividualDrawing = async (req, res) => {
     try {
-        const drawing = await Drawing.findByIdAndDelete(req.params.id);
-        if (!drawing) return res.status(404).send();
-        res.status(200).send(drawing);
+        const { id } = req.params;
+
+        // Validate ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid drawing ID.' });
+        }
+
+        // Attempt to find and delete the drawing
+        const drawing = await Drawing.findByIdAndDelete(id);
+
+        if (!drawing) {
+            return res.status(404).json({ message: 'Drawing not found.' });
+        }
+
+        // Return success response
+        return res.status(200).json({ message: 'Drawing deleted successfully.', drawing });
     } catch (error) {
-        res.status(500).send(error);
+        // Log error and return internal server error
+        console.error('Error deleting drawing:', error);
+        return res.status(500).json({ message: 'Internal server error.', error: error.message });
     }
-}
+};
